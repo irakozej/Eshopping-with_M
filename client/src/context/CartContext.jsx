@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
+import { trackEvent } from '../lib/analytics';
 
 const CartContext = createContext(null);
 
@@ -38,6 +39,12 @@ export function CartProvider({ children }) {
   }, [fetchCart]);
 
   const addToCart = async (product, size, color, quantity = 1) => {
+    trackEvent('add_to_cart', {
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity,
+    });
     if (!user) {
       const current = getLocalCart();
       const idx = current.findIndex(

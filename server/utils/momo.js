@@ -21,8 +21,16 @@ const API_KEY      = process.env.MOMO_API_KEY;
 const TARGET_ENV   = process.env.MOMO_TARGET_ENVIRONMENT  || 'sandbox';
 const CURRENCY     = process.env.MOMO_CURRENCY            || 'EUR';
 
+// A value counts as "set" only if it's non-empty and not a leftover placeholder.
+function isRealValue(v) {
+  if (!v) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return !/^(paste|your|<|changeme)/i.test(s);
+}
+
 function isConfigured() {
-  return !!(SUB_KEY && API_USER && API_KEY);
+  return isRealValue(SUB_KEY) && isRealValue(API_USER) && isRealValue(API_KEY);
 }
 
 /** Normalize Rwanda phone → MSISDN (e.g. 078 000 0000 → 250780000000) */

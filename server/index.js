@@ -1,7 +1,8 @@
-require('dotenv').config();
+require('./instrument');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const Sentry = require('@sentry/node');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -40,6 +41,13 @@ app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Sentry test endpoint (no-op when DSN unset)
+app.get('/api/debug-sentry', (req, res, next) => {
+  next(new Error('Sentry backend test error'));
+});
+
+Sentry.setupExpressErrorHandler(app);
 
 // Global error handler
 app.use((err, req, res, next) => {

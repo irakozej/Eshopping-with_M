@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, ShoppingBag, MessageSquarePlus, X, CheckCheck } from 'lucide-react';
+import { Bell, ShoppingBag, MessageSquarePlus, Star, X, CheckCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 
 const TYPE_ICON = {
   order: ShoppingBag,
   request: MessageSquarePlus,
+  review: Star,
 };
 const TYPE_COLOR = {
   order: 'bg-blue-100 text-blue-600',
   request: 'bg-accent-light text-accent',
+  review: 'bg-amber-100 text-amber-600',
 };
 
 function timeAgo(dateStr) {

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Lock, Tag, Smartphone, CreditCard, ChevronDown, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { formatPrice } from '../lib/formatPrice';
+import { trackEvent } from '../lib/analytics';
+import { stripePromise, stripeConfigured } from '../lib/stripe';
 
 const DELIVERY_ZONES = [
   { label: 'Kigali City (Nyarugenge, Gasabo, Kicukiro)', fee: 2000 },
@@ -21,6 +24,53 @@ const INIT_ADDRESS = {
   state: 'Kigali City', zip: '', country: 'Rwanda', phone: '',
 };
 
+function CardPaymentForm({ total, loading, setLoading, setError, onSuccess }) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setLoading(true);
+    setError('');
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: window.location.origin + '/orders' },
+      redirect: 'if_required',
+    });
+    if (error) {
+      setError(error.message || 'Card payment failed.');
+      setLoading(false);
+      return;
+    }
+    if (paymentIntent && paymentIntent.status === 'succeeded') {
+      await onSuccess(paymentIntent.id);
+    } else {
+      setError(`Unexpected payment status: ${paymentIntent?.status || 'unknown'}`);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 flex items-start gap-2 rounded-2xl">
+        <Lock size={13} className="mt-0.5 flex-shrink-0" />
+        <span><strong>Test mode</strong> — Use card <code className="bg-amber-100 px-1.5 py-0.5 rounded-lg">4242 4242 4242 4242</code>, any future date, any CVC, any ZIP.</span>
+      </div>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button
+        type="submit"
+        disabled={!stripe || loading}
+        className="btn-primary w-full py-4 text-base flex items-center justify-center gap-2.5 font-semibold rounded-2xl active:scale-[0.98] cursor-pointer"
+      >
+        {loading
+          ? (<><Loader2 size={18} className="animate-spin" /> Processing…</>)
+          : (<><Lock size={16} /> Pay {formatPrice(total)}</>)}
+      </button>
+    </form>
+  );
+}
+
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { user } = useAuth();
@@ -30,8 +80,9 @@ export default function Checkout() {
   const [address, setAddress]     = useState(INIT_ADDRESS);
   const [zoneIndex, setZoneIndex] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [card, setCard]           = useState({ number: '', expiry: '', cvc: '', name: '' });
   const [mtnPhone, setMtnPhone]   = useState('');
+  const [clientSecret, setClientSecret] = useState(null);
+  const [intentLoading, setIntentLoading] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [orderId, setOrderId]     = useState(null);
@@ -53,8 +104,65 @@ export default function Checkout() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
+  useEffect(() => {
+    if (items.length > 0) {
+      trackEvent('begin_checkout', {
+        items: items.length,
+        subtotal,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const updateAddr = (f, v) => setAddress(p => ({ ...p, [f]: v }));
-  const updateCard = (f, v) => setCard(p => ({ ...p, [f]: v }));
+
+  // Fetch a fresh PaymentIntent whenever the card step is active and total changes
+  useEffect(() => {
+    if (step !== 2 || paymentMethod !== 'card' || !user || !stripeConfigured || total < 50) return;
+    let cancelled = false;
+    setIntentLoading(true);
+    setError('');
+    api.post('/payments/create-intent', { amount: total })
+      .then(res => { if (!cancelled) setClientSecret(res.data.clientSecret); })
+      .catch(err => {
+        if (!cancelled) setError(err.response?.data?.error || 'Could not initialize card payment.');
+      })
+      .finally(() => { if (!cancelled) setIntentLoading(false); });
+    return () => { cancelled = true; };
+  }, [step, paymentMethod, total, user]);
+
+  const shippingAddressPayload = () => ({
+    name: `${address.firstName} ${address.lastName}`,
+    street: address.street, city: address.city,
+    state: address.state, zip: address.zip,
+    country: address.country, phone: address.phone, zone: zone.label,
+  });
+
+  const finalizeCardOrder = async (paymentIntentId) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.post('/orders', {
+        shipping_address: shippingAddressPayload(),
+        stripe_payment_id: paymentIntentId,
+        payment_method: 'Card',
+        discount_code: discount?.code || null,
+        shipping_fee: shipping,
+      });
+      trackEvent('purchase', {
+        order_id: String(res.data.id),
+        total,
+        payment_method: 'Card',
+      });
+      setOrderId(res.data.id);
+      await clearCart();
+      setStep(3);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Order creation failed after payment. Contact support with your card statement.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const applyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -100,39 +208,25 @@ export default function Checkout() {
     }, 4000);
   };
 
-  const handlePayment = async (e) => {
+  const handleMtnSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (paymentMethod === 'card') {
-      if (!card.number || !card.expiry || !card.cvc || !card.name) {
-        setError('Please fill in all card fields');
-        return;
-      }
-    } else {
-      if (!mtnPhone.trim()) {
-        setError('Please enter your MTN Mobile Money number');
-        return;
-      }
+    if (!mtnPhone.trim()) {
+      setError('Please enter your MTN Mobile Money number');
+      return;
     }
 
     setLoading(true);
     try {
-      const shippingAddress = {
-        name: `${address.firstName} ${address.lastName}`,
-        street: address.street, city: address.city,
-        state: address.state, zip: address.zip,
-        country: address.country, phone: address.phone, zone: zone.label,
-      };
-
       let orderData;
       if (user) {
         const res = await api.post('/orders', {
-          shipping_address: shippingAddress,
-          stripe_payment_id: paymentMethod === 'card' ? `pi_test_${Date.now()}` : null,
-          payment_method: paymentMethod === 'mtn' ? 'MTN Mobile Money' : 'Card',
+          shipping_address: shippingAddressPayload(),
+          stripe_payment_id: null,
+          payment_method: 'MTN Mobile Money',
           discount_code: discount?.code || null,
           shipping_fee: shipping,
-          mtn_phone: paymentMethod === 'mtn' ? mtnPhone : undefined,
+          mtn_phone: mtnPhone,
         });
         orderData = res.data;
       } else {
@@ -141,13 +235,18 @@ export default function Checkout() {
 
       setOrderId(orderData.id);
 
-      if (paymentMethod === 'mtn' && orderData.momoReferenceId) {
+      if (orderData.momoReferenceId) {
         setMomoReferenceId(orderData.momoReferenceId);
         setMomoStatus('PENDING');
         setMomoConfigured(true);
         setStep(2.5);
         startPolling(orderData.momoReferenceId);
       } else {
+        trackEvent('purchase', {
+          order_id: String(orderData.id),
+          total,
+          payment_method: 'MTN Mobile Money',
+        });
         await clearCart();
         setMomoConfigured(orderData.momoConfigured !== false);
         setStep(3);
@@ -362,7 +461,7 @@ export default function Checkout() {
 
             {/* Step 2 — Payment */}
             {step === 2 && (
-              <form onSubmit={handlePayment} className="space-y-5 animate-fade-in">
+              <div className="space-y-5 animate-fade-in">
                 <div className="card p-6 space-y-5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-heading font-bold text-stone-800">Payment Method</h2>
@@ -411,47 +510,30 @@ export default function Checkout() {
                   </div>
 
                   {paymentMethod === 'card' && (
-                    <div className="space-y-4">
-                      <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 flex items-start gap-2 rounded-2xl">
-                        <Lock size={13} className="mt-0.5 flex-shrink-0" />
-                        <span><strong>Test mode</strong> — Use card <code className="bg-amber-100 px-1.5 py-0.5 rounded-lg">4242 4242 4242 4242</code>, any future date, any CVC.</span>
+                    !stripeConfigured ? (
+                      <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl p-4">
+                        <p className="font-semibold mb-1">Stripe is not configured</p>
+                        <p className="text-xs">Set <code className="bg-red-100 px-1 rounded">VITE_STRIPE_PUBLISHABLE_KEY</code> in <code>client/.env</code> and <code>STRIPE_SECRET_KEY</code> in <code>server/.env</code>, then restart the dev server.</p>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Cardholder Name</label>
-                        <input value={card.name} onChange={e => updateCard('name', e.target.value)} className="input-field" required placeholder="Jane Doe" />
+                    ) : intentLoading || !clientSecret ? (
+                      <div className="flex items-center justify-center py-10 text-stone-400 text-sm">
+                        <Loader2 size={18} className="animate-spin mr-2" /> Preparing secure payment…
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Card Number</label>
-                        <input
-                          value={card.number}
-                          onChange={e => updateCard('number', e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim().slice(0, 19))}
-                          className="input-field font-mono tracking-widest"
-                          required placeholder="4242 4242 4242 4242" maxLength={19}
+                    ) : (
+                      <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#CA8A04' } } }}>
+                        <CardPaymentForm
+                          total={total}
+                          loading={loading}
+                          setLoading={setLoading}
+                          setError={setError}
+                          onSuccess={finalizeCardOrder}
                         />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Expiry</label>
-                          <input
-                            value={card.expiry}
-                            onChange={e => { const v = e.target.value.replace(/\D/g, ''); updateCard('expiry', v.length > 2 ? `${v.slice(0,2)}/${v.slice(2,4)}` : v); }}
-                            className="input-field font-mono" required placeholder="MM/YY" maxLength={5}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">CVC</label>
-                          <input
-                            value={card.cvc}
-                            onChange={e => updateCard('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                            className="input-field font-mono" required placeholder="123" maxLength={4}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                      </Elements>
+                    )
                   )}
 
                   {paymentMethod === 'mtn' && (
-                    <div className="space-y-4">
+                    <form onSubmit={handleMtnSubmit} className="space-y-4">
                       <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-4">
                         <p className="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-2">
                           <Smartphone size={15} /> How MTN MoMo works
@@ -474,7 +556,16 @@ export default function Checkout() {
                         />
                         <p className="text-[10px] text-stone-400 mt-1.5">Make sure this is your active MTN MoMo number with sufficient balance.</p>
                       </div>
-                    </div>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="btn-mtn w-full py-4 text-base flex items-center justify-center gap-2.5 font-semibold rounded-2xl active:scale-[0.98] cursor-pointer"
+                      >
+                        {loading
+                          ? (<><Loader2 size={18} className="animate-spin" /> Processing…</>)
+                          : (<><Smartphone size={18} /> Send MoMo Request — {formatPrice(total)}</>)}
+                      </button>
+                    </form>
                   )}
                 </div>
 
@@ -513,22 +604,7 @@ export default function Checkout() {
                   )}
                   {discountError && <p className="text-xs text-red-500 mt-2 font-medium">{discountError}</p>}
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-full py-4 text-base flex items-center justify-center gap-2.5 font-semibold rounded-2xl transition-all duration-200 active:scale-[0.98] cursor-pointer
-                    ${paymentMethod === 'mtn' ? 'btn-mtn' : 'btn-primary'}`}
-                >
-                  {loading ? (
-                    <><Loader2 size={18} className="animate-spin" /> Processing…</>
-                  ) : paymentMethod === 'mtn' ? (
-                    <><Smartphone size={18} /> Send MoMo Request — {formatPrice(total)}</>
-                  ) : (
-                    <><Lock size={16} /> Pay {formatPrice(total)}</>
-                  )}
-                </button>
-              </form>
+              </div>
             )}
           </div>
 

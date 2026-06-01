@@ -6,9 +6,14 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "test:email": "node scripts/test-email.js",
+    "test:stripe": "node scripts/test-stripe.js",
+    "momo:provision": "node scripts/momo-provision.js",
+    "test:momo": "node scripts/test-momo.js"
   },
   "dependencies": {
+    "@sentry/node": "^10.55.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.4.3",
     "cors": "^2.8.5",

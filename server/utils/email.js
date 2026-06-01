@@ -65,7 +65,7 @@ async function sendOrderConfirmation(user, order) {
 
   try {
     const info = await transporter.sendMail({
-      from: `"M·Shop" <${process.env.SMTP_FROM || 'noreply@mshop.rw'}>`,
+      from: `"M·Shop" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@mshop.rw'}>`,
       to: user.email,
       subject: `Order Confirmed — #${order.id} | M·Shop`,
       html,
@@ -89,7 +89,7 @@ async function sendStatusUpdate(user, order) {
 
   try {
     const info = await transporter.sendMail({
-      from: `"M·Shop" <${process.env.SMTP_FROM || 'noreply@mshop.rw'}>`,
+      from: `"M·Shop" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@mshop.rw'}>`,
       to: user.email,
       subject: `Order #${order.id} — ${order.status.charAt(0).toUpperCase() + order.status.slice(1)} | M·Shop`,
       html: `

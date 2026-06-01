@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^10.55.0",
     "@stripe/react-stripe-js": "^2.6.2",
     "@stripe/stripe-js": "^3.3.0",
     "axios": "^1.6.8",

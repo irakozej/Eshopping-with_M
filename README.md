@@ -48,7 +48,7 @@ The server `.env` file is pre-configured for development:
 PORT=5000
 JWT_SECRET=eshopping_jwt_secret_mvp_2024
 STRIPE_SECRET_KEY=sk_test_placeholder_replace_with_real_key
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=http://localhost:5174
 ```
 
 For real Stripe payments, replace `STRIPE_SECRET_KEY` with your test key from [stripe.com/dashboard](https://dashboard.stripe.com).
@@ -65,16 +65,22 @@ This creates:
 
 ### 4. Start the servers
 
-In two separate terminals:
+From the project root, run both backend and frontend with a single command:
 ```bash
-# Terminal 1 — Backend (port 5000)
-cd server && npm run dev
-
-# Terminal 2 — Frontend (port 5173)
-cd client && npm run dev
+npm install        # installs concurrently at the root (one-time)
+npm run dev        # starts backend (:5000) and frontend (:5174) together
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Or run them in separate terminals if you prefer:
+```bash
+# Terminal 1 — Backend (port 5000)
+npm run server
+
+# Terminal 2 — Frontend (port 5174)
+npm run client
+```
+
+Open [http://localhost:5174](http://localhost:5174)
 
 ## Features
 

@@ -5,6 +5,12 @@ const fs = require('fs');
 const db = require('../db/setup');
 const { requireAdmin } = require('../middleware/auth');
 const { sendStatusUpdate } = require('../utils/email');
+const { createNotification } = require('./notifications');
+
+const STATUS_LABEL = {
+  pending: 'Pending', processing: 'Processing', shipped: 'Shipped',
+  delivered: 'Delivered', cancelled: 'Cancelled', pending_payment: 'Pending payment',
+};
 
 const router = express.Router();
 
@@ -156,6 +162,7 @@ router.put('/orders/:id', requireAdmin, (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
+  const previousStatus = order.status;
   db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
   const updated = db.prepare(`
     SELECT o.*, u.name as user_name, u.email as user_email
@@ -165,6 +172,16 @@ router.put('/orders/:id', requireAdmin, (req, res) => {
   // Send status update email (non-blocking)
   const user = db.prepare('SELECT name, email FROM users WHERE id = ?').get(order.user_id);
   if (user) sendStatusUpdate(user, { ...updated, items: JSON.parse(updated.items) }).catch(() => {});
+
+  // Admin feed: record the status change
+  if (previousStatus !== status) {
+    createNotification(
+      'order',
+      `Order #${req.params.id} → ${STATUS_LABEL[status] || status}`,
+      `${updated.user_name || 'Customer'}'s order moved from ${STATUS_LABEL[previousStatus] || previousStatus} to ${STATUS_LABEL[status] || status}`,
+      '/admin/orders'
+    );
+  }
 
   res.json({
     ...updated,

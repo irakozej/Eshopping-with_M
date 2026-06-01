@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db/setup');
 const { authenticate } = require('../middleware/auth');
+const { createNotification } = require('./notifications');
 
 const router = express.Router();
 
@@ -47,6 +48,15 @@ router.post('/:productId/reviews', authenticate, (req, res) => {
       SELECT r.id, r.rating, r.comment, r.created_at, u.name as user_name
       FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.id = ?
     `).get(result.lastInsertRowid);
+
+    const productName = db.prepare('SELECT name FROM products WHERE id = ?').get(req.params.productId)?.name || 'product';
+    const snippet = comment ? `"${comment.slice(0, 80)}${comment.length > 80 ? '…' : ''}"` : 'No comment.';
+    createNotification(
+      'review',
+      `New ${rating}★ review on ${productName}`,
+      `${review.user_name || 'A customer'} left a review: ${snippet}`,
+      `/products/${req.params.productId}`
+    );
 
     res.status(201).json(review);
   } catch (err) {

@@ -147,6 +147,9 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
   const request = db.prepare('SELECT * FROM product_requests WHERE id = ?').get(req.params.id);
   if (!request) return res.status(404).json({ error: 'Request not found' });
 
+  const noteChanged = admin_note !== undefined && admin_note !== request.admin_note;
+  const statusChanged = status && status !== request.status;
+
   db.prepare('UPDATE product_requests SET status = ?, admin_note = ? WHERE id = ?').run(
     status || request.status,
     admin_note !== undefined ? admin_note : request.admin_note,
@@ -159,8 +162,22 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
   `).get(req.params.id);
 
   // Email customer if status changed
-  if (status && status !== request.status && updated.user_email) {
+  if (statusChanged && updated.user_email) {
     sendRequestStatusEmail(updated).catch(() => {});
+  }
+
+  // Admin feed: record the reply (status change or note)
+  if (statusChanged || noteChanged) {
+    const STATUS_LABEL = { pending: 'Pending', reviewing: 'Reviewing', fulfilled: 'Fulfilled', rejected: 'Rejected' };
+    const parts = [];
+    if (statusChanged) parts.push(`status: ${STATUS_LABEL[updated.status] || updated.status}`);
+    if (noteChanged) parts.push(`note added`);
+    createNotification(
+      'request',
+      `Reply sent — ${updated.name}`,
+      `${updated.user_name || 'Customer'}'s request updated (${parts.join(', ')})`,
+      '/admin/requests'
+    );
   }
 
   res.json({ ...updated, images: JSON.parse(updated.images) });
