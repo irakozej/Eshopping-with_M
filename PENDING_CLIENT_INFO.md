@@ -7,7 +7,7 @@ Keep this file updated as items get resolved in later phases.
 
 **Status legend:** `OPEN` = still needed · `RESOLVED` = received & applied · `BLOCKED` = waiting on a dependency
 
-Last updated: 2026-06-07 (Phase 2 env configuration applied)
+Last updated: 2026-06-07 (Phase 3 admin seeded)
 
 ---
 
@@ -47,3 +47,10 @@ Last updated: 2026-06-07 (Phase 2 env configuration applied)
 - Frontend now reads APP_NAME, WHATSAPP_NUMBER, DELIVERY_FREE_THRESHOLD_RWF from env via `client/src/lib/config.js` (VITE_ prefixed, with real defaults) — used by Navbar, Footer, WhatsApp button, and Checkout.
 - Card payments gated by `PAYMENTS_STRIPE_ENABLED` (default false): Checkout hides the card option (MoMo only); Stripe backend route kept intact but returns 503 when disabled.
 - Still "to follow": MoMo `API_USER`/`API_KEY` (item 3), Gmail `SMTP_PASS` (item 11). No real .env committed (only .env.example).
+
+### Phase 3 — Launch admin seeded (2026-06-07)
+- Added idempotent `server/scripts/seed-admin.js` (`npm run seed:admin`). Creates the only launch admin: **Night Esther Kaliza** &lt;kalizane44@gmail.com&gt;, role admin.
+- Temporary password is randomly generated and printed to the console once; only its bcrypt hash is stored. No password committed. Re-running never duplicates or overwrites.
+- Verified: user logs in (role `admin`) and reaches admin-only routes.
+- `server/db/shop.db-shm` / `-wal` removed from git tracking and gitignored so DB state (incl. password hashes) is never committed.
+- **Action for client:** Ms. Esther should log in with the printed temporary password and change it on first login.
