@@ -7,7 +7,7 @@ Keep this file updated as items get resolved in later phases.
 
 **Status legend:** `OPEN` = still needed · `RESOLVED` = received & applied · `BLOCKED` = waiting on a dependency
 
-Last updated: 2026-06-07 (Phase 6 policy drafts)
+Last updated: 2026-06-07 (Phase 7 final verification)
 
 ---
 
@@ -24,7 +24,7 @@ Last updated: 2026-06-07 (Phase 6 policy drafts)
 | 7 | Return policy text | Final return/refund policy copy. **DRAFT** at `policies/return-policy.md` (rendered at `/policies/returns`) — needs client review/approval | OPEN |
 | 8 | Privacy policy text | Final privacy policy copy. **DRAFT** at `policies/privacy-policy.md` (rendered at `/policies/privacy`) — needs client review/approval | OPEN |
 | 9 | Terms & conditions text | Final terms and conditions copy. **DRAFT** at `policies/terms-and-conditions.md` (rendered at `/policies/terms`) — needs client review/approval | OPEN |
-| 10 | Checkout payment methods | Which payment methods to offer at checkout. At launch: **MTN MoMo only** (card hidden via `PAYMENTS_STRIPE_ENABLED=false`). Confirm if cash-on-delivery or others are wanted | OPEN |
+| 10 | Checkout payment methods | **Launch decision implemented & verified:** MTN MoMo + Pickup at store; card hidden behind `PAYMENTS_STRIPE_ENABLED=false`. (Optional future: confirm if cash-on-delivery is wanted.) | RESOLVED |
 | 11 | Gmail App Password | `SMTP_PASS` for `beautybeyond706@gmail.com` (16-char Google App Password) needed to send real emails | OPEN |
 
 ---
@@ -70,3 +70,9 @@ Last updated: 2026-06-07 (Phase 6 policy drafts)
 - DRAFT policies authored in `/policies` (`return-policy.md`, `privacy-policy.md`, `terms-and-conditions.md`), plain English for client review.
 - Rendered at `/policies/returns`, `/policies/privacy`, `/policies/terms` (dependency-free Markdown renderer); each page shows a "DRAFT — pending client review" banner; footer links added.
 - **Action for client:** review and approve/edit the three drafts (items 7–9), then we remove the DRAFT banners.
+
+### Phase 7 — Final verification (2026-06-07)
+- **Customer flow ✓:** browse (12 products) → register → add to cart (subtotal RWF 72,000) → **free delivery auto-applied** (shipping_fee 0) → MoMo checkout via the not-configured demo fallback → order created (#7, total 72,000) and shown in order history.
+- **Order email — partial:** the confirmation email is generated correctly (subject + Beyond Beauty branding + recipient) but currently routes to the **dev console fallback**, not a real inbox. Real inbox delivery is **still blocked on the Gmail App Password** (item 11) and a server restart to load the SMTP env. Not yet confirmed in a real inbox.
+- **Admin (Night Esther Kaliza) ✓:** Dashboard stats, Products (19), Orders (4, incl. #7), and Delivery Zones (3) all load (HTTP 200).
+- **Commits:** Phases 0–4 and 6 are each a separate commit; Phase 5 (email) is intentionally left uncommitted until real delivery is confirmed.
