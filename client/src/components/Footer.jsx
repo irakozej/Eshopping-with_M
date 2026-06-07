@@ -182,8 +182,11 @@ export default function Footer() {
       <div className="border-t border-stone-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-stone-700">
           <p>© {new Date().getFullYear()} Beyond Beauty Ltd (RDB 122456686). All rights reserved.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
             <Link to="/about" className="hover:text-stone-400 transition-colors">About Us</Link>
+            <Link to="/policies/returns" className="hover:text-stone-400 transition-colors">Returns</Link>
+            <Link to="/policies/privacy" className="hover:text-stone-400 transition-colors">Privacy</Link>
+            <Link to="/policies/terms" className="hover:text-stone-400 transition-colors">Terms</Link>
             <p>Prices displayed in Rwandan Franc (RWF)</p>
           </div>
         </div>

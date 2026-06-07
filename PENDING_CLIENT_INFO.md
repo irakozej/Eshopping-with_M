@@ -7,7 +7,7 @@ Keep this file updated as items get resolved in later phases.
 
 **Status legend:** `OPEN` = still needed · `RESOLVED` = received & applied · `BLOCKED` = waiting on a dependency
 
-Last updated: 2026-06-07 (Phase 4 delivery zones)
+Last updated: 2026-06-07 (Phase 6 policy drafts)
 
 ---
 
@@ -21,9 +21,9 @@ Last updated: 2026-06-07 (Phase 4 delivery zones)
 | 4 | Stripe account | Future payment provider — account + API keys (not needed at launch) | OPEN |
 | 5 | Bank payout details | Bank name, account name, account number for payouts | OPEN |
 | 6 | Delivery zones & fees | Exact Kigali delivery zones and their fees (RWF). **Placeholders seeded** (Kicukiro 1500, Nyarugenge 2000, Gasabo 2000) — editable in Admin → Delivery Zones. Need client's real zones/fees | OPEN |
-| 7 | Return policy text | Final return/refund policy copy | OPEN |
-| 8 | Privacy policy text | Final privacy policy copy | OPEN |
-| 9 | Terms & conditions text | Final terms and conditions copy | OPEN |
+| 7 | Return policy text | Final return/refund policy copy. **DRAFT** at `policies/return-policy.md` (rendered at `/policies/returns`) — needs client review/approval | OPEN |
+| 8 | Privacy policy text | Final privacy policy copy. **DRAFT** at `policies/privacy-policy.md` (rendered at `/policies/privacy`) — needs client review/approval | OPEN |
+| 9 | Terms & conditions text | Final terms and conditions copy. **DRAFT** at `policies/terms-and-conditions.md` (rendered at `/policies/terms`) — needs client review/approval | OPEN |
 | 10 | Checkout payment methods | Which payment methods to offer at checkout. At launch: **MTN MoMo only** (card hidden via `PAYMENTS_STRIPE_ENABLED=false`). Confirm if cash-on-delivery or others are wanted | OPEN |
 | 11 | Gmail App Password | `SMTP_PASS` for `beautybeyond706@gmail.com` (16-char Google App Password) needed to send real emails | OPEN |
 
@@ -61,3 +61,12 @@ Last updated: 2026-06-07 (Phase 4 delivery zones)
 - Checkout reads zones from the DB (`GET /api/delivery/zones`) — no hardcoded fees. Adds a 4th option **"Pickup at store (free)"**.
 - Free delivery auto-applied when subtotal ≥ `DELIVERY_FREE_THRESHOLD_RWF` (50000) → fee 0, "Free delivery applied". "Estimated delivery: 24 hours within Kigali" shown near the selector (from `DELIVERY_DEFAULT_DAYS`).
 - **Action for client:** replace the 3 placeholder zones with real Kigali zones & fees (item 6).
+
+### Phase 5 — Order emails (PAUSED, partial)
+- `utils/email.js` rebranded to Beyond Beauty Boutique and fully env-driven (`SMTP_*`, `APP_NAME`, `SUPPORT_EMAIL`); jsonTransport kept as local-dev-only fallback. SMTP scaffold added to `server/.env` (gitignored).
+- **Blocked on:** Gmail App Password (`SMTP_PASS`, item 11) to send the real test email. Resume later.
+
+### Phase 6 — Policy drafts (2026-06-07)
+- DRAFT policies authored in `/policies` (`return-policy.md`, `privacy-policy.md`, `terms-and-conditions.md`), plain English for client review.
+- Rendered at `/policies/returns`, `/policies/privacy`, `/policies/terms` (dependency-free Markdown renderer); each page shows a "DRAFT — pending client review" banner; footer links added.
+- **Action for client:** review and approve/edit the three drafts (items 7–9), then we remove the DRAFT banners.

@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
+    // Allow importing the policy Markdown drafts from /policies at the repo root.
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

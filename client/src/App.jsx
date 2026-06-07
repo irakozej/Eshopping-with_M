@@ -23,6 +23,9 @@ import Wishlist from './pages/Wishlist';
 import ProductRequest from './pages/ProductRequest';
 import MyRequests from './pages/MyRequests';
 import About from './pages/About';
+import ReturnPolicy from './pages/policies/ReturnPolicy';
+import PrivacyPolicy from './pages/policies/PrivacyPolicy';
+import TermsConditions from './pages/policies/TermsConditions';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -65,6 +68,9 @@ export default function App() {
                   <Route path="/" element={<Home />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/policies/returns" element={<ReturnPolicy />} />
+                  <Route path="/policies/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/policies/terms" element={<TermsConditions />} />
                   <Route path="/products/:id" element={<ProductDetail />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/login" element={<Login />} />
