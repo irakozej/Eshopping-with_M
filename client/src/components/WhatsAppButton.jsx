@@ -1,5 +1,5 @@
-const WHATSAPP_NUMBER = '250781234567'; // Replace with actual number
-const WHATSAPP_MESSAGE = encodeURIComponent("Hello! I'm interested in your products on M·Shop.");
+const WHATSAPP_NUMBER = '250794803462'; // Beyond Beauty Boutique — Ms. Esther
+const WHATSAPP_MESSAGE = encodeURIComponent("Hello Beyond Beauty Boutique! I'm interested in your fashion collection.");
 
 export default function WhatsAppButton() {
   return (

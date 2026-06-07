@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, ArrowRight, Star, ShoppingBag, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -50,10 +51,7 @@ export default function Login() {
         {/* Content */}
         <div className="relative z-10 px-14 max-w-lg animate-fade-in">
           {/* Logo */}
-          <div className="flex items-baseline gap-0.5 mb-10">
-            <span className="text-3xl font-heading font-bold tracking-[0.18em] text-white uppercase">M·</span>
-            <span className="text-3xl font-heading font-bold tracking-[0.18em] text-gradient uppercase">SHOP</span>
-          </div>
+          <Logo to="/" onDark className="text-3xl mb-10" />
 
           <h2 className="text-4xl md:text-5xl font-heading font-light text-white leading-[1.1] mb-5">
             Welcome back to<br />
@@ -104,7 +102,7 @@ export default function Login() {
                 <LogIn size={22} className="text-white" />
               </div>
               <h1 className="text-2xl font-heading font-semibold text-stone-900">Welcome back</h1>
-              <p className="text-stone-500 text-sm mt-1.5">Sign in to your M·Shop account</p>
+              <p className="text-stone-500 text-sm mt-1.5">Sign in to your Beyond Beauty account</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

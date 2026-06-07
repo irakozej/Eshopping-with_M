@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import NotificationBell from './NotificationBell';
+import Logo from './Logo';
 
 function Avatar({ name, isAdmin }) {
   const initials = name
@@ -119,10 +120,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* ── Logo ── */}
-          <Link to="/" className="flex items-baseline gap-0.5 flex-shrink-0 group">
-            <span className="text-xl font-heading font-bold tracking-[0.18em] text-stone-950 uppercase group-hover:text-stone-700 transition-colors">M·</span>
-            <span className="text-xl font-heading font-bold tracking-[0.18em] text-gradient uppercase">SHOP</span>
-          </Link>
+          <Logo to="/" className="text-xl" />
 
           {/* ── Desktop Nav ── */}
           <div className="hidden md:flex items-center gap-7">
@@ -306,7 +304,7 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search M·Shop..."
+                placeholder="Search Beyond Beauty..."
                 className="input-field"
                 autoFocus
               />

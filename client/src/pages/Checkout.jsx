@@ -328,7 +328,7 @@ export default function Checkout() {
               <Check size={36} className="text-green-600" strokeWidth={2.5} />
             </div>
             <h1 className="text-3xl font-heading font-light mb-2 text-stone-900">Order Confirmed!</h1>
-            <p className="text-stone-500 mb-1">Thank you for shopping with M·Shop.</p>
+            <p className="text-stone-500 mb-1">Thank you for shopping with Beyond Beauty Boutique.</p>
             <p className="text-xs text-stone-400 bg-stone-100 inline-block px-5 py-2.5 mt-2 mb-6 font-mono rounded-2xl">
               Order #{orderId}
             </p>

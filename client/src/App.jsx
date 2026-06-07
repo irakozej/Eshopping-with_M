@@ -22,6 +22,7 @@ import Profile from './pages/Profile';
 import Wishlist from './pages/Wishlist';
 import ProductRequest from './pages/ProductRequest';
 import MyRequests from './pages/MyRequests';
+import About from './pages/About';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -62,6 +63,7 @@ export default function App() {
                   {/* Public */}
                   <Route path="/" element={<Home />} />
                   <Route path="/products" element={<Products />} />
+                  <Route path="/about" element={<About />} />
                   <Route path="/products/:id" element={<ProductDetail />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/login" element={<Login />} />

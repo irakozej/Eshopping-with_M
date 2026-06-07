@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserPlus, Eye, EyeOff, ArrowRight, Truck, RotateCcw, Tag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo';
 
 export default function Register() {
   const { register } = useAuth();
@@ -56,14 +57,11 @@ export default function Register() {
 
         {/* Content */}
         <div className="relative z-10 px-14 max-w-lg animate-fade-in">
-          <div className="flex items-baseline gap-0.5 mb-10">
-            <span className="text-3xl font-heading font-bold tracking-[0.18em] text-white uppercase">M·</span>
-            <span className="text-3xl font-heading font-bold tracking-[0.18em] text-gradient uppercase">SHOP</span>
-          </div>
+          <Logo to="/" onDark className="text-3xl mb-10" />
 
           <h2 className="text-4xl md:text-5xl font-heading font-light text-white leading-[1.1] mb-5">
             Join the<br />
-            <span className="font-bold text-gradient">M·Shop</span> family
+            <span className="font-bold text-gradient">Beyond Beauty</span> family
           </h2>
           <p className="text-stone-300 text-base leading-relaxed mb-10 max-w-sm">
             Create an account to save your wishlist, track orders, and get exclusive offers on the latest fashion from Rwanda and beyond.
@@ -101,7 +99,7 @@ export default function Register() {
                 <UserPlus size={22} className="text-white" />
               </div>
               <h1 className="text-2xl font-heading font-semibold text-stone-900">Create account</h1>
-              <p className="text-stone-500 text-sm mt-1.5">Join M·Shop today — it's free</p>
+              <p className="text-stone-500 text-sm mt-1.5">Join Beyond Beauty today — it's free</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
