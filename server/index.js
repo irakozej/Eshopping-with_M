@@ -15,6 +15,7 @@ const reviewRoutes = require('./routes/reviews');
 const wishlistRoutes = require('./routes/wishlist');
 const discountRoutes = require('./routes/discounts');
 const notificationRoutes = require('./routes/notifications');
+const deliveryRoutes = require('./routes/delivery');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/products', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

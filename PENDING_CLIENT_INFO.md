@@ -7,7 +7,7 @@ Keep this file updated as items get resolved in later phases.
 
 **Status legend:** `OPEN` = still needed · `RESOLVED` = received & applied · `BLOCKED` = waiting on a dependency
 
-Last updated: 2026-06-07 (Phase 3 admin seeded)
+Last updated: 2026-06-07 (Phase 4 delivery zones)
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-06-07 (Phase 3 admin seeded)
 | 3 | MoMo API credentials | Full **API User** + **API Key** needed. Merchant code `030002` set in `.env.example` (`MOMO_MERCHANT_CODE`); `MOMO_API_USER` / `MOMO_API_KEY` left blank "to follow" | OPEN |
 | 4 | Stripe account | Future payment provider — account + API keys (not needed at launch) | OPEN |
 | 5 | Bank payout details | Bank name, account name, account number for payouts | OPEN |
-| 6 | Delivery zones & fees | Exact Kigali delivery zones and their fees (RWF) | OPEN |
+| 6 | Delivery zones & fees | Exact Kigali delivery zones and their fees (RWF). **Placeholders seeded** (Kicukiro 1500, Nyarugenge 2000, Gasabo 2000) — editable in Admin → Delivery Zones. Need client's real zones/fees | OPEN |
 | 7 | Return policy text | Final return/refund policy copy | OPEN |
 | 8 | Privacy policy text | Final privacy policy copy | OPEN |
 | 9 | Terms & conditions text | Final terms and conditions copy | OPEN |
@@ -54,3 +54,10 @@ Last updated: 2026-06-07 (Phase 3 admin seeded)
 - Verified: user logs in (role `admin`) and reaches admin-only routes.
 - `server/db/shop.db-shm` / `-wal` removed from git tracking and gitignored so DB state (incl. password hashes) is never committed.
 - **Action for client:** Ms. Esther should log in with the printed temporary password and change it on first login.
+
+### Phase 4 — Kigali delivery zones (2026-06-07)
+- New `delivery_zones` DB table; 3 PLACEHOLDER zones seeded idempotently (Kicukiro 1500, Nyarugenge 2000, Gasabo 2000), flagged `is_placeholder`.
+- Admin → **Delivery Zones** page (`/admin/settings`): add / edit (name + fee) / activate / delete zones. Editing a placeholder clears its placeholder flag. Hint text marks placeholders and explains the free-delivery rule.
+- Checkout reads zones from the DB (`GET /api/delivery/zones`) — no hardcoded fees. Adds a 4th option **"Pickup at store (free)"**.
+- Free delivery auto-applied when subtotal ≥ `DELIVERY_FREE_THRESHOLD_RWF` (50000) → fee 0, "Free delivery applied". "Estimated delivery: 24 hours within Kigali" shown near the selector (from `DELIVERY_DEFAULT_DAYS`).
+- **Action for client:** replace the 3 placeholder zones with real Kigali zones & fees (item 6).

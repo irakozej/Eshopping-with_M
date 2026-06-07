@@ -120,6 +120,16 @@ db.exec(`
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS delivery_zones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    fee REAL NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1,
+    is_placeholder INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // --- Migrations: safely add columns that may not exist in older DBs ---
@@ -142,6 +152,25 @@ for (const { table, column, sql } of migrations) {
       console.log(`[migration] Added column ${table}.${column}`);
     }
   } catch {}
+}
+
+// --- Seed PLACEHOLDER Kigali delivery zones (only when none exist) ---
+// These are placeholders to be replaced by the client's real zones & fees.
+try {
+  const zoneCount = db.prepare('SELECT COUNT(*) AS n FROM delivery_zones').get().n;
+  if (zoneCount === 0) {
+    const insertZone = db.prepare(
+      'INSERT INTO delivery_zones (name, fee, active, is_placeholder, sort_order) VALUES (?, ?, 1, 1, ?)'
+    );
+    [
+      { name: 'Kicukiro', fee: 1500 },
+      { name: 'Nyarugenge', fee: 2000 },
+      { name: 'Gasabo', fee: 2000 },
+    ].forEach((z, i) => insertZone.run(z.name, z.fee, i));
+    console.log('[seed] Inserted 3 placeholder delivery zones (Kicukiro, Nyarugenge, Gasabo)');
+  }
+} catch (e) {
+  console.error('[seed] delivery_zones seeding failed:', e.message);
 }
 
 module.exports = db;

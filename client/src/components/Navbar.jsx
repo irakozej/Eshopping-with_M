@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingBag, Search, Menu, X, MessageSquarePlus, ChevronDown, Heart,
-  LogOut, User, Package, LayoutDashboard, Tag, ClipboardList, ShoppingCart, Eye,
+  LogOut, User, Package, LayoutDashboard, Tag, ClipboardList, ShoppingCart, Eye, Truck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -91,6 +91,7 @@ export default function Navbar() {
     { to: '/admin/orders',     icon: ShoppingCart,    label: 'Orders' },
     { to: '/admin/requests',   icon: ClipboardList,   label: 'Product Requests' },
     { to: '/admin/discounts',  icon: Tag,             label: 'Discount Codes' },
+    { to: '/admin/settings',   icon: Truck,           label: 'Delivery Zones' },
   ];
 
   const customerMenuItems = [

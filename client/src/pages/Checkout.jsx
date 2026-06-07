@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Lock, Tag, Smartphone, CreditCard, ChevronDown, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Check, Lock, Tag, Smartphone, CreditCard, ChevronDown, Loader2, AlertCircle, ArrowRight, Truck } from 'lucide-react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,18 +8,11 @@ import api from '../lib/api';
 import { formatPrice } from '../lib/formatPrice';
 import { trackEvent } from '../lib/analytics';
 import { stripePromise, stripeConfigured } from '../lib/stripe';
-import { DELIVERY_FREE_THRESHOLD_RWF, PAYMENTS_STRIPE_ENABLED } from '../lib/config';
+import { DELIVERY_FREE_THRESHOLD_RWF, DELIVERY_DEFAULT_DAYS, PAYMENTS_STRIPE_ENABLED } from '../lib/config';
 
-const DELIVERY_ZONES = [
-  { label: 'Kigali City (Nyarugenge, Gasabo, Kicukiro)', fee: 2000 },
-  { label: 'Bugesera / Rwamagana / Rulindo',              fee: 3500 },
-  { label: 'Musanze / Rubavu / Burera',                   fee: 5000 },
-  { label: 'Huye / Muhanga / Nyanza',                     fee: 5000 },
-  { label: 'Rusizi / Nyamagabe / Karongi',                fee: 6000 },
-  { label: 'Rest of Rwanda',                              fee: 6000 },
-];
+// Free "pickup at store" option, always offered alongside DB-driven delivery zones.
+const PICKUP_OPTION = { id: 'pickup', name: 'Pickup at store', fee: 0, pickup: true };
 
-const FREE_THRESHOLD = DELIVERY_FREE_THRESHOLD_RWF;
 const INIT_ADDRESS = {
   firstName: '', lastName: '', street: '', city: 'Kigali',
   state: 'Kigali City', zip: '', country: 'Rwanda', phone: '',
@@ -79,7 +72,9 @@ export default function Checkout() {
 
   const [step, setStep]           = useState(1);
   const [address, setAddress]     = useState(INIT_ADDRESS);
-  const [zoneIndex, setZoneIndex] = useState(0);
+  const [zones, setZones]         = useState([]);
+  const [deliveryConfig, setDeliveryConfig] = useState({ free_threshold: DELIVERY_FREE_THRESHOLD_RWF, default_days: DELIVERY_DEFAULT_DAYS });
+  const [deliveryId, setDeliveryId] = useState('pickup'); // zone id (number) or 'pickup'
   // Card (Stripe) is gated behind a flag; default to MoMo when it's off.
   const [paymentMethod, setPaymentMethod] = useState(PAYMENTS_STRIPE_ENABLED ? 'card' : 'mtn');
   const [mtnPhone, setMtnPhone]   = useState('');
@@ -99,12 +94,35 @@ export default function Checkout() {
   const [discountLoading, setDiscountLoading]   = useState(false);
   const [discountError, setDiscountError]       = useState('');
 
-  const zone          = DELIVERY_ZONES[zoneIndex];
-  const shipping      = subtotal >= FREE_THRESHOLD ? 0 : zone.fee;
-  const discountAmount = discount?.amount || 0;
-  const total         = Math.max(0, subtotal + shipping - discountAmount);
+  // Delivery options = DB zones + the free in-store pickup option.
+  const deliveryOptions = [...zones, PICKUP_OPTION];
+  const selectedDelivery = deliveryOptions.find(o => String(o.id) === String(deliveryId)) || PICKUP_OPTION;
+  const isPickup        = !!selectedDelivery.pickup;
+  const freeThreshold   = deliveryConfig.free_threshold ?? DELIVERY_FREE_THRESHOLD_RWF;
+  const estimateDays    = deliveryConfig.default_days ?? DELIVERY_DEFAULT_DAYS;
+  const estimateText    = estimateDays <= 1 ? '24 hours' : `${estimateDays} days`;
+  const freeDeliveryApplied = !isPickup && subtotal >= freeThreshold;
+  const shipping        = isPickup || freeDeliveryApplied ? 0 : selectedDelivery.fee;
+  const discountAmount  = discount?.amount || 0;
+  const total           = Math.max(0, subtotal + shipping - discountAmount);
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  // Load delivery zones (and free-delivery config) from the server.
+  useEffect(() => {
+    api.get('/delivery/zones')
+      .then(res => {
+        const fetched = res.data.zones || [];
+        setZones(fetched);
+        setDeliveryConfig({
+          free_threshold: res.data.free_threshold ?? DELIVERY_FREE_THRESHOLD_RWF,
+          default_days: res.data.default_days ?? DELIVERY_DEFAULT_DAYS,
+        });
+        // Default to the first real zone if available, else pickup.
+        if (fetched.length > 0) setDeliveryId(fetched[0].id);
+      })
+      .catch(() => { /* keep pickup-only fallback */ });
+  }, []);
 
   useEffect(() => {
     if (items.length > 0) {
@@ -137,7 +155,7 @@ export default function Checkout() {
     name: `${address.firstName} ${address.lastName}`,
     street: address.street, city: address.city,
     state: address.state, zip: address.zip,
-    country: address.country, phone: address.phone, zone: zone.label,
+    country: address.country, phone: address.phone, zone: selectedDelivery.name,
   });
 
   const finalizeCardOrder = async (paymentIntentId) => {
@@ -184,7 +202,9 @@ export default function Checkout() {
 
   const handleAddressSubmit = (e) => {
     e.preventDefault();
-    if (['firstName', 'lastName', 'street', 'city'].some(f => !address[f].trim())) {
+    // Pickup needs only a name to contact; delivery also needs street + city.
+    const required = isPickup ? ['firstName', 'lastName'] : ['firstName', 'lastName', 'street', 'city'];
+    if (required.some(f => !address[f].trim())) {
       setError('Please fill in all required fields');
       return;
     }
@@ -441,18 +461,36 @@ export default function Checkout() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Delivery Zone *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Delivery Option *</label>
                     <div className="relative">
-                      <select value={zoneIndex} onChange={e => setZoneIndex(Number(e.target.value))} className="input-field appearance-none pr-8 cursor-pointer">
-                        {DELIVERY_ZONES.map((z, i) => (
-                          <option key={i} value={i}>{z.label} — {subtotal >= FREE_THRESHOLD ? 'FREE' : formatPrice(z.fee)}</option>
+                      <select
+                        value={deliveryId}
+                        onChange={e => setDeliveryId(e.target.value === 'pickup' ? 'pickup' : Number(e.target.value))}
+                        className="input-field appearance-none pr-8 cursor-pointer"
+                      >
+                        {zones.map(z => (
+                          <option key={z.id} value={z.id}>
+                            {z.name} — {freeDeliveryApplied ? 'FREE' : formatPrice(z.fee)}
+                          </option>
                         ))}
+                        <option value="pickup">Pickup at store (free)</option>
                       </select>
                       <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
                     </div>
-                    {subtotal >= FREE_THRESHOLD && (
-                      <p className="text-xs text-green-600 font-semibold mt-1.5">Free delivery applied (order over {formatPrice(FREE_THRESHOLD)})</p>
-                    )}
+
+                    {/* Estimated delivery hint */}
+                    <p className="text-xs text-stone-500 mt-1.5 flex items-center gap-1.5">
+                      <Truck size={12} className="text-accent" />
+                      {isPickup
+                        ? `Ready for pickup in ${estimateText} · Kicukiro, Kigali`
+                        : `Estimated delivery: ${estimateText} within Kigali`}
+                    </p>
+
+                    {isPickup ? (
+                      <p className="text-xs text-green-600 font-semibold mt-1">Pickup at store — no delivery fee.</p>
+                    ) : freeDeliveryApplied ? (
+                      <p className="text-xs text-green-600 font-semibold mt-1">Free delivery applied (order over {formatPrice(freeThreshold)}).</p>
+                    ) : null}
                   </div>
                 </div>
                 <button type="submit" className="btn-primary w-full py-4 text-base group">
@@ -636,7 +674,7 @@ export default function Checkout() {
                   <span className="font-semibold text-stone-800">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-stone-500">
-                  <span>Delivery ({zone.label.split('(')[0].trim()})</span>
+                  <span>{isPickup ? 'Pickup' : 'Delivery'} ({selectedDelivery.name})</span>
                   <span className={`font-semibold ${shipping === 0 ? 'text-green-600' : 'text-stone-800'}`}>
                     {shipping === 0 ? 'FREE' : formatPrice(shipping)}
                   </span>

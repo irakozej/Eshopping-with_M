@@ -19,6 +19,10 @@ export const WHATSAPP_NUMBER_E164 = WHATSAPP_NUMBER.replace(/\D/g, '');
 export const DELIVERY_FREE_THRESHOLD_RWF =
   Number(env.VITE_DELIVERY_FREE_THRESHOLD_RWF) || 50000;
 
+// Default delivery estimate, in days (used for the "Estimated delivery" hint).
+export const DELIVERY_DEFAULT_DAYS =
+  Number(env.VITE_DELIVERY_DEFAULT_DAYS) || 1;
+
 // Card payments are gated behind a flag (default OFF). When false, the checkout
 // UI hides the card option; the Stripe backend route stays intact behind its own
 // server-side PAYMENTS_STRIPE_ENABLED flag.
