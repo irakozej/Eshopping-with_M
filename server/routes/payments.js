@@ -37,7 +37,12 @@ router.get('/momo-status/:referenceId', authenticate, async (req, res) => {
 });
 
 // POST /api/payments/create-intent (Stripe — kept for card payments)
+// Gated behind PAYMENTS_STRIPE_ENABLED: the route stays registered, but returns
+// 503 unless card payments are explicitly enabled.
 router.post('/create-intent', authenticate, (req, res) => {
+  if (process.env.PAYMENTS_STRIPE_ENABLED !== 'true') {
+    return res.status(503).json({ error: 'Card payments are currently disabled.' });
+  }
   const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
   const { amount } = req.body;
   if (!amount || amount < 50) return res.status(400).json({ error: 'Invalid amount' });

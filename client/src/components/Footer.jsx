@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
 import Logo from './Logo';
+import { formatPrice } from '../lib/formatPrice';
+import { APP_NAME, WHATSAPP_NUMBER, WHATSAPP_NUMBER_E164, DELIVERY_FREE_THRESHOLD_RWF } from '../lib/config';
 
 // Brand contacts — Beyond Beauty Boutique (see PENDING_CLIENT_INFO.md for outstanding items)
-const PHONE_DISPLAY = '+250 794 803 462';
-const PHONE_E164 = '250794803462';
+const PHONE_DISPLAY = WHATSAPP_NUMBER;
 const EMAIL = 'beautybeyond706@gmail.com';
 const INSTAGRAM_URL = 'https://www.instagram.com/beyond_beauty_ltd';
 const TIKTOK_URL = 'https://vm.tiktok.com/ZS92QkuE4JNYs-16kZp/';
-const WHATSAPP_URL = `https://wa.me/${PHONE_E164}`;
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER_E164}`;
 
 // Inline brand icons (lucide-react has no TikTok / WhatsApp glyph)
 function TikTokIcon({ size = 15, className = '' }) {
@@ -75,7 +76,7 @@ export default function Footer() {
             <Logo to="/" onDark className="text-xl mb-3" />
             <p className="text-[11px] tracking-[0.25em] uppercase text-accent font-bold mb-4">Fashion | Beauty | Lifestyle</p>
             <p className="text-sm text-stone-500 leading-relaxed mb-6">
-              Beyond Beauty Boutique — a fashion boutique in Kicukiro, Kigali. Curated clothing for every style and every occasion.
+              {APP_NAME} — a fashion boutique in Kicukiro, Kigali. Curated clothing for every style and every occasion.
             </p>
 
             {/* Contact */}
@@ -84,7 +85,7 @@ export default function Footer() {
                 <MapPin size={13} className="text-accent flex-shrink-0" />
                 Kicukiro, Kigali, Rwanda
               </div>
-              <a href={`tel:${PHONE_E164}`}
+              <a href={`tel:${WHATSAPP_NUMBER_E164}`}
                 className="flex items-center gap-2.5 hover:text-stone-400 transition-colors">
                 <Phone size={13} className="text-accent flex-shrink-0" />
                 {PHONE_DISPLAY}
@@ -154,9 +155,8 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               {[
                 'Free delivery in Kigali',
-                'Orders over RWF 50,000',
+                `Orders over ${formatPrice(DELIVERY_FREE_THRESHOLD_RWF)}`,
                 'Easy 7-day returns',
-                'Secure card payments',
                 'MTN Mobile Money',
               ].map(info => <li key={info} className="text-stone-500 leading-snug">{info}</li>)}
             </ul>

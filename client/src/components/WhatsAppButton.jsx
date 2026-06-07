@@ -1,10 +1,11 @@
-const WHATSAPP_NUMBER = '250794803462'; // Beyond Beauty Boutique — Ms. Esther
-const WHATSAPP_MESSAGE = encodeURIComponent("Hello Beyond Beauty Boutique! I'm interested in your fashion collection.");
+import { APP_NAME, WHATSAPP_NUMBER_E164 } from '../lib/config';
+
+const WHATSAPP_MESSAGE = encodeURIComponent(`Hello ${APP_NAME}! I'm interested in your fashion collection.`);
 
 export default function WhatsAppButton() {
   return (
     <a
-      href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`}
+      href={`https://wa.me/${WHATSAPP_NUMBER_E164}?text=${WHATSAPP_MESSAGE}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95"

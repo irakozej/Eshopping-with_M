@@ -8,6 +8,7 @@ import api from '../lib/api';
 import { formatPrice } from '../lib/formatPrice';
 import { trackEvent } from '../lib/analytics';
 import { stripePromise, stripeConfigured } from '../lib/stripe';
+import { DELIVERY_FREE_THRESHOLD_RWF, PAYMENTS_STRIPE_ENABLED } from '../lib/config';
 
 const DELIVERY_ZONES = [
   { label: 'Kigali City (Nyarugenge, Gasabo, Kicukiro)', fee: 2000 },
@@ -18,7 +19,7 @@ const DELIVERY_ZONES = [
   { label: 'Rest of Rwanda',                              fee: 6000 },
 ];
 
-const FREE_THRESHOLD = 50000;
+const FREE_THRESHOLD = DELIVERY_FREE_THRESHOLD_RWF;
 const INIT_ADDRESS = {
   firstName: '', lastName: '', street: '', city: 'Kigali',
   state: 'Kigali City', zip: '', country: 'Rwanda', phone: '',
@@ -79,7 +80,8 @@ export default function Checkout() {
   const [step, setStep]           = useState(1);
   const [address, setAddress]     = useState(INIT_ADDRESS);
   const [zoneIndex, setZoneIndex] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  // Card (Stripe) is gated behind a flag; default to MoMo when it's off.
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENTS_STRIPE_ENABLED ? 'card' : 'mtn');
   const [mtnPhone, setMtnPhone]   = useState('');
   const [clientSecret, setClientSecret] = useState(null);
   const [intentLoading, setIntentLoading] = useState(false);
@@ -472,7 +474,8 @@ export default function Checkout() {
                   </div>
 
                   {/* Payment method selector */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={`grid gap-3 ${PAYMENTS_STRIPE_ENABLED ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {PAYMENTS_STRIPE_ENABLED && (
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('card')}
@@ -490,6 +493,7 @@ export default function Checkout() {
                         <p className="text-[10px] text-stone-400">Visa, Mastercard</p>
                       </div>
                     </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('mtn')}
@@ -509,7 +513,7 @@ export default function Checkout() {
                     </button>
                   </div>
 
-                  {paymentMethod === 'card' && (
+                  {PAYMENTS_STRIPE_ENABLED && paymentMethod === 'card' && (
                     !stripeConfigured ? (
                       <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl p-4">
                         <p className="font-semibold mb-1">Stripe is not configured</p>

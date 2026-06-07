@@ -9,6 +9,8 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import NotificationBell from './NotificationBell';
 import Logo from './Logo';
+import { formatPrice } from '../lib/formatPrice';
+import { DELIVERY_FREE_THRESHOLD_RWF } from '../lib/config';
 
 function Avatar({ name, isAdmin }) {
   const initials = name
@@ -111,7 +113,7 @@ export default function Navbar() {
           style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(202,138,4,0.3) 0%, transparent 70%)' }} />
         <div className="relative inline-flex items-center gap-2.5">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          FREE DELIVERY IN KIGALI ON ORDERS OVER RWF 50,000
+          FREE DELIVERY IN KIGALI ON ORDERS OVER {formatPrice(DELIVERY_FREE_THRESHOLD_RWF)}
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
         </div>
       </div>
