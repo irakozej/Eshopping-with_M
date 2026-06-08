@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, ShoppingBag, MessageSquarePlus, Star, X, CheckCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
 const TYPE_ICON = {
@@ -27,6 +27,7 @@ export default function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   const fetchUnread = async () => {
     try {
@@ -66,10 +67,21 @@ export default function NotificationBell() {
     setUnread(0);
   };
 
-  const markRead = async (id) => {
-    await api.put(`/notifications/${id}/read`);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: 1 } : n));
-    setUnread(prev => Math.max(0, prev - 1));
+  const markRead = async (notif) => {
+    // Idempotent: only hit the API / decrement the count if it was unread.
+    if (!notif.read) {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: 1 } : n));
+      setUnread(prev => Math.max(0, prev - 1));
+      try { await api.put(`/notifications/${notif.id}/read`); } catch {}
+    }
+  };
+
+  // Click a notification: mark it read, then deep-link to its target.
+  // Old rows with no link simply don't navigate (and never crash).
+  const handleClick = (notif) => {
+    markRead(notif);
+    setOpen(false);
+    if (notif.link) navigate(notif.link);
   };
 
   return (
@@ -121,8 +133,11 @@ export default function NotificationBell() {
               return (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={0}
                   className={`flex items-start gap-3 px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer ${!n.read ? 'bg-accent-light/30' : ''}`}
-                  onClick={() => { markRead(n.id); setOpen(false); }}
+                  onClick={() => handleClick(n)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(n); } }}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${colorCls}`}>
                     <Icon size={14} />
