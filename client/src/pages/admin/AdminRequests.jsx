@@ -19,6 +19,7 @@ export default function AdminRequests() {
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [noteInputs, setNoteInputs] = useState({});
+  const [msgInputs, setMsgInputs] = useState({});
   const [updating, setUpdating] = useState(null);
 
   const fetchRequests = () => {
@@ -32,10 +33,18 @@ export default function AdminRequests() {
 
   useEffect(() => { fetchRequests(); }, [statusFilter]);
 
-  const updateRequest = async (id, status, admin_note) => {
+  // status_message is the OPTIONAL in-app comment shown to the customer.
+  // Falls back to whatever is already saved; always allowed to be blank.
+  const updateRequest = async (id, status, opts = {}) => {
+    const current = requests.find(r => r.id === id);
+    const payload = {
+      status,
+      admin_note: opts.admin_note ?? noteInputs[id] ?? current?.admin_note,
+      status_message: opts.status_message ?? msgInputs[id] ?? current?.status_message ?? '',
+    };
     setUpdating(id);
     try {
-      const res = await api.put(`/requests/admin/${id}`, { status, admin_note });
+      const res = await api.put(`/requests/admin/${id}`, payload);
       setRequests(prev => prev.map(r => r.id === id ? res.data : r));
     } catch {
       alert('Failed to update request');
@@ -97,7 +106,7 @@ export default function AdminRequests() {
                   {req.budget && <p className="text-sm font-medium">{formatPrice(req.budget)}</p>}
                   <select
                     value={req.status}
-                    onChange={e => { e.stopPropagation(); updateRequest(req.id, e.target.value, noteInputs[req.id] ?? req.admin_note); }}
+                    onChange={e => { e.stopPropagation(); updateRequest(req.id, e.target.value); }}
                     disabled={updating === req.id}
                     className={`text-xs px-2 py-1 font-medium border-0 capitalize cursor-pointer focus:outline-none ${STATUS_COLORS[req.status]}`}
                     onClick={e => e.stopPropagation()}
@@ -138,11 +147,32 @@ export default function AdminRequests() {
                         onChange={e => setNoteInputs(prev => ({ ...prev, [req.id]: e.target.value }))}
                       />
                       <button
-                        onClick={() => updateRequest(req.id, req.status, noteInputs[req.id] ?? req.admin_note)}
+                        onClick={() => updateRequest(req.id, req.status)}
                         disabled={updating === req.id}
                         className="mt-2 btn-primary py-2 px-4 text-xs"
                       >
                         {updating === req.id ? 'Saving...' : 'Save Note'}
+                      </button>
+                    </div>
+
+                    {/* Status comment — optional, shown in-app to the customer */}
+                    <div className="mt-5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">
+                        Note to customer <span className="text-stone-400 normal-case font-normal">(optional, shown in their account)</span>
+                      </label>
+                      <textarea
+                        className="input-field text-sm"
+                        rows={2}
+                        placeholder="e.g. We've sourced this — restocking next week. Leave blank to send no note."
+                        defaultValue={req.status_message || ''}
+                        onChange={e => setMsgInputs(prev => ({ ...prev, [req.id]: e.target.value }))}
+                      />
+                      <button
+                        onClick={() => updateRequest(req.id, req.status)}
+                        disabled={updating === req.id}
+                        className="mt-2 btn-secondary py-2 px-4 text-xs"
+                      >
+                        {updating === req.id ? 'Saving...' : 'Save Note to Customer'}
                       </button>
                     </div>
                   </div>

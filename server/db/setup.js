@@ -141,6 +141,7 @@ const migrations = [
   { table: 'discount_codes', column: 'uses',    sql: "ALTER TABLE discount_codes ADD COLUMN uses INTEGER NOT NULL DEFAULT 0" },
   { table: 'discount_codes', column: 'active',  sql: "ALTER TABLE discount_codes ADD COLUMN active INTEGER NOT NULL DEFAULT 1" },
   { table: 'product_requests', column: 'admin_note', sql: "ALTER TABLE product_requests ADD COLUMN admin_note TEXT" },
+  { table: 'product_requests', column: 'status_message', sql: "ALTER TABLE product_requests ADD COLUMN status_message TEXT" },
   { table: 'notifications', column: 'link',     sql: "ALTER TABLE notifications ADD COLUMN link TEXT" },
 ];
 

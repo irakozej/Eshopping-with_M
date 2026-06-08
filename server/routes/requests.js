@@ -139,7 +139,9 @@ router.get('/admin', requireAdmin, (req, res) => {
 
 // PUT /api/requests/admin/:id — admin updates status/note
 router.put('/admin/:id', requireAdmin, (req, res) => {
-  const { status, admin_note } = req.body;
+  // status_message: OPTIONAL in-app-only comment shown to the request owner.
+  // Kept strictly separate from admin_note, which is part of the email path.
+  const { status, admin_note, status_message } = req.body;
   const valid = ['pending', 'reviewing', 'fulfilled', 'rejected'];
   if (status && !valid.includes(status)) {
     return res.status(400).json({ error: `Status must be one of: ${valid.join(', ')}` });
@@ -150,9 +152,15 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
   const noteChanged = admin_note !== undefined && admin_note !== request.admin_note;
   const statusChanged = status && status !== request.status;
 
-  db.prepare('UPDATE product_requests SET status = ?, admin_note = ? WHERE id = ?').run(
+  // Normalize the optional comment: blank/whitespace becomes null (never required).
+  const nextStatusMessage = status_message !== undefined
+    ? (String(status_message).trim() || null)
+    : (request.status_message ?? null);
+
+  db.prepare('UPDATE product_requests SET status = ?, admin_note = ?, status_message = ? WHERE id = ?').run(
     status || request.status,
     admin_note !== undefined ? admin_note : request.admin_note,
+    nextStatusMessage,
     req.params.id
   );
 
@@ -161,21 +169,26 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
     FROM product_requests pr JOIN users u ON u.id = pr.user_id WHERE pr.id = ?
   `).get(req.params.id);
 
-  // Email customer if status changed
+  // Email customer if status changed.
+  // NOTE: sendRequestStatusEmail only ever reads admin_note — status_message
+  // is intentionally never passed into the email path.
   if (statusChanged && updated.user_email) {
     sendRequestStatusEmail(updated).catch(() => {});
   }
 
-  // Admin feed: record the reply (status change or note)
+  // Admin feed: record the reply (status change or note). Include the optional
+  // comment inline; when blank, the message reads cleanly with no trailing "Note:".
   if (statusChanged || noteChanged) {
     const STATUS_LABEL = { pending: 'Pending', reviewing: 'Reviewing', fulfilled: 'Fulfilled', rejected: 'Rejected' };
-    const parts = [];
-    if (statusChanged) parts.push(`status: ${STATUS_LABEL[updated.status] || updated.status}`);
-    if (noteChanged) parts.push(`note added`);
+    const statusPart = statusChanged
+      ? `marked ${STATUS_LABEL[updated.status] || updated.status}`
+      : 'note updated';
+    let body = `${updated.user_name || 'Customer'}'s request "${updated.name}" ${statusPart}.`;
+    if (nextStatusMessage) body += ` Note: ${nextStatusMessage}`;
     createNotification(
       'request',
       `Reply sent — ${updated.name}`,
-      `${updated.user_name || 'Customer'}'s request updated (${parts.join(', ')})`,
+      body,
       '/admin/requests'
     );
   }

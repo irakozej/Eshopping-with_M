@@ -149,6 +149,13 @@ export default function MyRequests() {
                         </div>
                       )}
 
+                      {/* Status note — optional comment left by the store on the latest status change */}
+                      {req.status_message && req.status_message.trim() && (
+                        <p className="mt-3 text-xs text-stone-600 leading-relaxed">
+                          <span className="font-bold text-stone-800">Note from store:</span> {req.status_message}
+                        </p>
+                      )}
+
                       {/* Steps indicator (non-rejected) */}
                       {req.status !== 'rejected' && (
                         <div className="mt-4 flex items-center gap-0">
