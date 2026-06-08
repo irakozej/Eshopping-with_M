@@ -143,6 +143,8 @@ const migrations = [
   { table: 'product_requests', column: 'admin_note', sql: "ALTER TABLE product_requests ADD COLUMN admin_note TEXT" },
   { table: 'product_requests', column: 'status_message', sql: "ALTER TABLE product_requests ADD COLUMN status_message TEXT" },
   { table: 'notifications', column: 'link',     sql: "ALTER TABLE notifications ADD COLUMN link TEXT" },
+  // user_id: NULL = admin/store feed (existing behaviour); a value = that customer's personal feed.
+  { table: 'notifications', column: 'user_id',  sql: "ALTER TABLE notifications ADD COLUMN user_id INTEGER" },
 ];
 
 for (const { table, column, sql } of migrations) {

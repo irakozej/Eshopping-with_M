@@ -160,8 +160,8 @@ export default function Navbar() {
               <Search size={18} />
             </button>
 
-            {/* Notification bell — admin only */}
-            {isAdmin && <NotificationBell />}
+            {/* Notification bell — any signed-in user */}
+            {user && <NotificationBell />}
 
             {/* Wishlist */}
             {user && !isAdmin && (

@@ -5,6 +5,7 @@ const fs = require('fs');
 const db = require('../db/setup');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { createNotification } = require('./notifications');
+const { fromHeader, IMPORTANCE_HEADERS, APP_NAME } = require('../utils/email');
 const nodemailer = require('nodemailer');
 
 const router = express.Router();
@@ -32,13 +33,15 @@ async function sendRequestStatusEmail(req) {
   }
 
   const info = await transporter.sendMail({
-    from: `"M·Shop" <${process.env.SMTP_FROM || 'noreply@mshop.rw'}>`,
+    from: fromHeader(),
     to: req.user_email,
-    subject: `Your Request Update — ${req.name} | M·Shop`,
+    subject: `Your Request Update — ${req.name} | ${APP_NAME}`,
+    priority: 'high',
+    headers: IMPORTANCE_HEADERS,
     html: `
       <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
         <div style="background:#1A140F;padding:24px;text-align:center;">
-          <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:3px;">M·<span style="color:#C8873A;">SHOP</span></h1>
+          <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:3px;font-family:Georgia,serif;">BEYOND <span style="color:#CA8A04;">BEAUTY</span></h1>
         </div>
         <div style="padding:32px 24px;">
           <h2 style="font-weight:400;">Product Request Update</h2>
@@ -55,7 +58,7 @@ async function sendRequestStatusEmail(req) {
           ${req.admin_note ? `<p style="margin-top:16px;padding:12px;background:#f9f9f9;border-left:3px solid #ccc;font-size:13px;color:#555;">Note from our team: ${req.admin_note}</p>` : ''}
         </div>
         <div style="padding:16px 24px;background:#f9f9f9;text-align:center;font-size:11px;color:#9b9b9b;">
-          M·Shop Rwanda · KG 11 Ave, Kigali · hello@mshop.rw
+          ${APP_NAME} · Kicukiro, Kigali, Rwanda · ${process.env.SUPPORT_EMAIL || 'beautybeyond706@gmail.com'}
         </div>
       </div>
     `,
@@ -195,6 +198,21 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
       body,
       '/admin/requests'
     );
+
+    // Customer's personal feed — only when the status actually changed.
+    // Includes the optional in-app note; never reads/uses the email path.
+    if (statusChanged) {
+      const STATUS_VERB = { reviewing: 'is under review', fulfilled: 'is now available', rejected: 'was not available', pending: 'is pending' };
+      let custBody = `Your request "${updated.name}" ${STATUS_VERB[updated.status] || `is now ${updated.status}`}.`;
+      if (nextStatusMessage) custBody += ` Note: ${nextStatusMessage}`;
+      createNotification(
+        'request',
+        `Update on "${updated.name}"`,
+        custBody,
+        '/my-requests',
+        updated.user_id
+      );
+    }
   }
 
   res.json({ ...updated, images: JSON.parse(updated.images) });

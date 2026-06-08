@@ -154,6 +154,14 @@ router.post('/', authenticate, async (req, res) => {
     `${user?.name || 'A customer'} placed an order for ${formatRWF(total)}`,
     '/admin/orders'
   );
+  // Customer's personal feed
+  createNotification(
+    'order',
+    `Order #${orderId} placed`,
+    `Thanks for your order of ${formatRWF(total)}. We'll let you know as it progresses.`,
+    '/orders',
+    req.user.id
+  );
 
   res.status(201).json(parsed);
 });

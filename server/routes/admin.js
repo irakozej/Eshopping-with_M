@@ -181,6 +181,14 @@ router.put('/orders/:id', requireAdmin, (req, res) => {
       `${updated.user_name || 'Customer'}'s order moved from ${STATUS_LABEL[previousStatus] || previousStatus} to ${STATUS_LABEL[status] || status}`,
       '/admin/orders'
     );
+    // Customer's personal feed
+    createNotification(
+      'order',
+      `Your order #${req.params.id} is ${STATUS_LABEL[status] || status}`,
+      `Order #${req.params.id} is now marked ${STATUS_LABEL[status] || status}.`,
+      '/orders',
+      order.user_id
+    );
   }
 
   res.json({

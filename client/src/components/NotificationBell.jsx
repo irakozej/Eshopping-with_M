@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, ShoppingBag, MessageSquarePlus, Star, X, CheckCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const TYPE_ICON = {
   order: ShoppingBag,
@@ -28,6 +29,8 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const fetchUnread = async () => {
     try {
@@ -156,11 +159,11 @@ export default function NotificationBell() {
           {notifications.length > 0 && (
             <div className="px-4 py-2.5 border-t border-stone-100 bg-stone-50">
               <Link
-                to="/admin/orders"
+                to={isAdmin ? '/admin/orders' : '/orders'}
                 className="text-xs text-accent font-medium hover:underline"
                 onClick={() => setOpen(false)}
               >
-                View all orders →
+                {isAdmin ? 'View all orders →' : 'View my orders →'}
               </Link>
             </div>
           )}

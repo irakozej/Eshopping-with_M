@@ -1,23 +1,62 @@
 const nodemailer = require('nodemailer');
 
-// Configure transporter from environment variables.
-// For development, emails are logged to console if SMTP_HOST is not set.
+// ── Store identity (env-driven, with Beyond Beauty defaults) ──────────────
+const APP_NAME      = process.env.APP_NAME || 'Beyond Beauty Boutique';
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Beyond Beauty LTD';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'beautybeyond706@gmail.com';
+
+// Headers that flag a message as high importance across mail clients.
+const IMPORTANCE_HEADERS = {
+  'Importance': 'high',
+  'X-Priority': '1',
+  'X-MSMail-Priority': 'High',
+};
+const STORE_LOCATION = 'Kicukiro, Kigali, Rwanda';
+const BRAND_DARK    = '#1A140F';
+const BRAND_GOLD    = '#CA8A04';
+
+// Configure transporter from SMTP_* environment variables.
+// Real SMTP is used whenever SMTP_HOST is set. If it is not set (local dev
+// only), we fall back to jsonTransport, which serialises the message to the
+// console and sends nothing.
 function getTransporter() {
   if (!process.env.SMTP_HOST) {
-    // Ethereal / console fallback for dev
-    return nodemailer.createTransport({
-      jsonTransport: true, // logs to console only
-    });
+    return nodemailer.createTransport({ jsonTransport: true }); // local-dev console fallback
   }
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === 'true',
+    secure: process.env.SMTP_SECURE === 'true', // false → STARTTLS on 587
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      // Gmail App Password (spaces optional; strip them so either form works).
+      pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
     },
   });
+}
+
+// "From" header: messages are sent under the legal sender name (Beyond Beauty
+// LTD) over the configured sending address. SMTP_FROM can override the whole
+// header if a fully-formed value is provided.
+function fromHeader() {
+  if (process.env.SMTP_FROM) return process.env.SMTP_FROM;
+  return `"${EMAIL_FROM_NAME}" <${process.env.SMTP_USER || SUPPORT_EMAIL}>`;
+}
+
+// Shared email chrome so every message stays on-brand.
+function emailHeader() {
+  return `<div style="background:${BRAND_DARK};padding:24px;text-align:center;">
+        <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:3px;font-family:Georgia,serif;">
+          BEYOND <span style="color:${BRAND_GOLD};">BEAUTY</span>
+        </h1>
+        <p style="color:#b8a98f;font-size:10px;letter-spacing:3px;margin:6px 0 0;text-transform:uppercase;">Fashion | Beauty | Lifestyle</p>
+      </div>`;
+}
+
+function emailFooter() {
+  return `<div style="padding:16px 24px;background:#f9f9f9;text-align:center;font-size:11px;color:#9b9b9b;">
+        ${APP_NAME} · ${STORE_LOCATION} · ${SUPPORT_EMAIL}
+      </div>`;
 }
 
 function formatRWF(amount) {
@@ -36,9 +75,7 @@ async function sendOrderConfirmation(user, order) {
 
   const html = `
     <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
-      <div style="background:#1A140F;padding:24px;text-align:center;">
-        <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:3px;">M·<span style="color:#C8873A;">SHOP</span></h1>
-      </div>
+      ${emailHeader()}
       <div style="padding:32px 24px;">
         <h2 style="font-weight:400;margin-bottom:4px;">Order Confirmed!</h2>
         <p style="color:#6b7280;margin:0 0 24px;">Hi ${user.name}, thank you for your order.</p>
@@ -57,18 +94,18 @@ async function sendOrderConfirmation(user, order) {
           <p style="margin:0;font-size:13px;color:#15803d;">We'll contact you via phone/WhatsApp once your order is ready for delivery.</p>
         </div>
       </div>
-      <div style="padding:16px 24px;background:#f9f9f9;text-align:center;font-size:11px;color:#9b9b9b;">
-        M·Shop Rwanda · KG 11 Ave, Kigali · hello@mshop.rw
-      </div>
+      ${emailFooter()}
     </div>
   `;
 
   try {
     const info = await transporter.sendMail({
-      from: `"M·Shop" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@mshop.rw'}>`,
+      from: fromHeader(),
       to: user.email,
-      subject: `Order Confirmed — #${order.id} | M·Shop`,
+      subject: `Order Confirmed — #${order.id} | ${APP_NAME}`,
       html,
+      priority: 'high',
+      headers: IMPORTANCE_HEADERS,
     });
     // If using jsonTransport (dev), log to console
     if (info.message) console.log('[EMAIL DEV]', JSON.parse(info.message).subject, '→', user.email);
@@ -89,20 +126,21 @@ async function sendStatusUpdate(user, order) {
 
   try {
     const info = await transporter.sendMail({
-      from: `"M·Shop" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@mshop.rw'}>`,
+      from: fromHeader(),
       to: user.email,
-      subject: `Order #${order.id} — ${order.status.charAt(0).toUpperCase() + order.status.slice(1)} | M·Shop`,
+      subject: `Order #${order.id} — ${order.status.charAt(0).toUpperCase() + order.status.slice(1)} | ${APP_NAME}`,
+      priority: 'high',
+      headers: IMPORTANCE_HEADERS,
       html: `
         <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;">
-          <div style="background:#1A140F;padding:24px;text-align:center;">
-            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:3px;">M·<span style="color:#C8873A;">SHOP</span></h1>
-          </div>
+          ${emailHeader()}
           <div style="padding:32px 24px;">
             <h2 style="font-weight:400;">Order Update</h2>
             <p>Hi ${user.name},</p>
             <p>${msg}</p>
             <p style="margin-top:20px;">Order <strong>#${order.id}</strong> — <strong>${formatRWF(order.total)}</strong></p>
           </div>
+          ${emailFooter()}
         </div>
       `,
     });
@@ -112,4 +150,4 @@ async function sendStatusUpdate(user, order) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendStatusUpdate };
+module.exports = { sendOrderConfirmation, sendStatusUpdate, fromHeader, IMPORTANCE_HEADERS, APP_NAME };
