@@ -156,6 +156,7 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
   const nextStatusMessage = status_message !== undefined
     ? (String(status_message).trim() || null)
     : (request.status_message ?? null);
+  const msgChanged = nextStatusMessage !== (request.status_message ?? null);
 
   db.prepare('UPDATE product_requests SET status = ?, admin_note = ?, status_message = ? WHERE id = ?').run(
     status || request.status,
@@ -176,13 +177,16 @@ router.put('/admin/:id', requireAdmin, (req, res) => {
     sendRequestStatusEmail(updated).catch(() => {});
   }
 
-  // Admin feed: record the reply (status change or note). Include the optional
-  // comment inline; when blank, the message reads cleanly with no trailing "Note:".
-  if (statusChanged || noteChanged) {
+  // Admin feed: record the reply (status change, admin note, or customer note).
+  // Include the optional comment inline; when blank, the message reads cleanly
+  // with no trailing "Note:".
+  if (statusChanged || noteChanged || msgChanged) {
     const STATUS_LABEL = { pending: 'Pending', reviewing: 'Reviewing', fulfilled: 'Fulfilled', rejected: 'Rejected' };
     const statusPart = statusChanged
       ? `marked ${STATUS_LABEL[updated.status] || updated.status}`
-      : 'note updated';
+      : msgChanged
+        ? 'note to customer updated'
+        : 'note updated';
     let body = `${updated.user_name || 'Customer'}'s request "${updated.name}" ${statusPart}.`;
     if (nextStatusMessage) body += ` Note: ${nextStatusMessage}`;
     createNotification(

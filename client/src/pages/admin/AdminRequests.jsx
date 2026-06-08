@@ -106,7 +106,13 @@ export default function AdminRequests() {
                   {req.budget && <p className="text-sm font-medium">{formatPrice(req.budget)}</p>}
                   <select
                     value={req.status}
-                    onChange={e => { e.stopPropagation(); updateRequest(req.id, e.target.value); }}
+                    onChange={e => {
+                      e.stopPropagation();
+                      // Open the row so the optional "Note to customer" field is visible
+                      // right after changing status (e.g. when rejecting).
+                      setExpanded(req.id);
+                      updateRequest(req.id, e.target.value);
+                    }}
                     disabled={updating === req.id}
                     className={`text-xs px-2 py-1 font-medium border-0 capitalize cursor-pointer focus:outline-none ${STATUS_COLORS[req.status]}`}
                     onClick={e => e.stopPropagation()}
@@ -156,23 +162,28 @@ export default function AdminRequests() {
                     </div>
 
                     {/* Status comment — optional, shown in-app to the customer */}
-                    <div className="mt-5">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">
-                        Note to customer <span className="text-stone-400 normal-case font-normal">(optional, shown in their account)</span>
+                    <div className="mt-5 rounded-xl border border-accent/30 bg-accent-light/40 p-4">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-accent mb-1 flex items-center gap-1.5">
+                        <MessageSquarePlus size={12} />
+                        Note to customer
                       </label>
+                      <p className="text-[11px] text-stone-500 mb-2">
+                        Optional. Shown in the customer's account next to the <span className="capitalize font-medium">{req.status}</span> status — e.g. a reason when rejecting. Leave blank to send no note.
+                      </p>
                       <textarea
+                        key={`${req.id}-${req.status_message || ''}`}
                         className="input-field text-sm"
                         rows={2}
-                        placeholder="e.g. We've sourced this — restocking next week. Leave blank to send no note."
+                        placeholder="e.g. Sorry, we couldn't source this one — but a similar piece is arriving next week."
                         defaultValue={req.status_message || ''}
                         onChange={e => setMsgInputs(prev => ({ ...prev, [req.id]: e.target.value }))}
                       />
                       <button
                         onClick={() => updateRequest(req.id, req.status)}
                         disabled={updating === req.id}
-                        className="mt-2 btn-secondary py-2 px-4 text-xs"
+                        className="mt-2 btn-primary py-2 px-4 text-xs"
                       >
-                        {updating === req.id ? 'Saving...' : 'Save Note to Customer'}
+                        {updating === req.id ? 'Saving...' : 'Save note to customer'}
                       </button>
                     </div>
                   </div>
