@@ -18,6 +18,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Profile from './pages/Profile';
 import Wishlist from './pages/Wishlist';
 import ProductRequest from './pages/ProductRequest';
@@ -82,6 +83,7 @@ export default function App() {
                   <Route path="/my-requests" element={<CustomerRoute><MyRequests /></CustomerRoute>} />
                   <Route path="/wishlist" element={<CustomerRoute><Wishlist /></CustomerRoute>} />
                   <Route path="/orders" element={<CustomerRoute><Orders /></CustomerRoute>} />
+                  <Route path="/orders/:id" element={<CustomerRoute><OrderDetail /></CustomerRoute>} />
                   <Route path="/profile" element={<CustomerRoute><Profile /></CustomerRoute>} />
 
                   {/* Admin only */}

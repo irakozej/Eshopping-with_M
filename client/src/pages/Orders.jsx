@@ -139,7 +139,11 @@ export default function Orders() {
                               </span>
                             </div>
                           )}
-                          <div className="flex items-center gap-2 sm:justify-end">
+                          <div className="flex items-center gap-3 sm:justify-end">
+                            <Link to={`/orders/${order.id}`}
+                              className="inline-flex items-center gap-1 text-xs text-accent font-semibold hover:underline">
+                              View full details <ArrowRight size={11} />
+                            </Link>
                             <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${cfg.color}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                               {cfg.label}

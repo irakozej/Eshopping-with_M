@@ -209,7 +209,7 @@ router.post('/', authenticate, async (req, res) => {
     'order',
     `Order #${orderId} placed`,
     `Thanks for your order of ${formatRWF(total)}. We'll let you know as it progresses.`,
-    '/orders',
+    `/orders/${orderId}`,
     req.user.id
   );
 

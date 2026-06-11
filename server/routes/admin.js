@@ -211,7 +211,7 @@ router.put('/orders/:id', requireAdmin, (req, res) => {
       'order',
       `Your order #${req.params.id} is ${STATUS_LABEL[status] || status}`,
       `Order #${req.params.id} is now marked ${STATUS_LABEL[status] || status}.`,
-      '/orders',
+      `/orders/${req.params.id}`,
       order.user_id
     );
   }
