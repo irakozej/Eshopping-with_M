@@ -63,8 +63,9 @@ async function main() {
   console.log('done');
 
   if (configured) {
+    const appName = process.env.APP_NAME || 'Beyond Beauty Boutique';
     console.log(`\n✓ Sent. Check ${recipient}'s inbox (and spam folder).`);
-    console.log(`  Subject: "Order Confirmed — #${fakeOrder.id} | M·Shop"\n`);
+    console.log(`  Subject: "Order Confirmed — #${fakeOrder.id} | ${appName}"\n`);
   } else {
     console.log('\n· No SMTP_HOST set — nothing actually sent. Add Gmail creds to server/.env to deliver for real.\n');
   }
