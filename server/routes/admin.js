@@ -163,6 +163,31 @@ router.put('/orders/:id', requireAdmin, (req, res) => {
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   const previousStatus = order.status;
+
+  // Stock adjustments on cancellation state changes.
+  if (previousStatus !== status) {
+    let orderItems = [];
+    try { orderItems = JSON.parse(order.items) || []; } catch {}
+    if (status === 'cancelled') {
+      // Cancelling: return reserved stock to the shelf.
+      const restore = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
+      for (const item of orderItems) restore.run(item.quantity, item.product_id);
+    } else if (previousStatus === 'cancelled') {
+      // Un-cancelling: re-reserve stock; refuse if items have since sold out.
+      const reserve = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?');
+      const reserveAll = db.transaction(() => {
+        for (const item of orderItems) {
+          const { changes } = reserve.run(item.quantity, item.product_id, item.quantity);
+          if (changes !== 1) throw Object.assign(new Error(`Cannot reactivate: "${item.name}" no longer has enough stock.`), { code: 'OUT_OF_STOCK' });
+        }
+      });
+      try { reserveAll(); } catch (err) {
+        if (err.code === 'OUT_OF_STOCK') return res.status(409).json({ error: err.message });
+        throw err;
+      }
+    }
+  }
+
   db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
   const updated = db.prepare(`
     SELECT o.*, u.name as user_name, u.email as user_email

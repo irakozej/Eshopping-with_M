@@ -108,6 +108,12 @@ export default function Checkout() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
+  // Checkout requires an account — orders must belong to a real user so they
+  // appear in order history, notifications, and emails.
+  useEffect(() => {
+    if (!user) navigate('/login?redirect=/checkout');
+  }, [user, navigate]);
+
   // Load delivery zones (and free-delivery config) from the server.
   useEffect(() => {
     api.get('/delivery/zones')
@@ -167,7 +173,7 @@ export default function Checkout() {
         stripe_payment_id: paymentIntentId,
         payment_method: 'Card',
         discount_code: discount?.code || null,
-        shipping_fee: shipping,
+        delivery_zone_id: isPickup ? 'pickup' : selectedDelivery.id,
       });
       trackEvent('purchase', {
         order_id: String(res.data.id),
@@ -240,20 +246,15 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      let orderData;
-      if (user) {
-        const res = await api.post('/orders', {
-          shipping_address: shippingAddressPayload(),
-          stripe_payment_id: null,
-          payment_method: 'MTN Mobile Money',
-          discount_code: discount?.code || null,
-          shipping_fee: shipping,
-          mtn_phone: mtnPhone,
-        });
-        orderData = res.data;
-      } else {
-        orderData = { id: `GUEST-${Date.now()}`, total };
-      }
+      const res = await api.post('/orders', {
+        shipping_address: shippingAddressPayload(),
+        stripe_payment_id: null,
+        payment_method: 'MTN Mobile Money',
+        discount_code: discount?.code || null,
+        delivery_zone_id: isPickup ? 'pickup' : selectedDelivery.id,
+        mtn_phone: mtnPhone,
+      });
+      const orderData = res.data;
 
       setOrderId(orderData.id);
 
